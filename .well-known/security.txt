@@ -1,0 +1,5 @@
+Contact: mailto:jtsites.contato@gmail.com
+Expires: 2027-09-07T23:59:59Z
+Preferred-Languages: pt-BR, en
+Canonical: https://jtsites0.github.io/demo-site/.well-known/security.txt
+Policy: https://github.com/JTSites0/demo-site/security/policy
