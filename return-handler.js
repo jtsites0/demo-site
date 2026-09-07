@@ -12,10 +12,16 @@ if (returnedFromForm) {
 
     if (!document.querySelector('.form-success-toast')) {
       const toast = document.createElement('div');
+      const title = document.createElement('strong');
+      const text = document.createElement('span');
+
       toast.className = 'form-success-toast';
       toast.setAttribute('role', 'status');
       toast.setAttribute('aria-live', 'polite');
-      toast.innerHTML = '<strong>✓ Pedido enviado com sucesso!</strong><span>Recebemos seu orçamento e vamos responder pelo contato informado.</span>';
+      title.textContent = '✓ Pedido enviado com sucesso!';
+      text.textContent = 'Recebemos seu orçamento e vamos responder pelo contato informado.';
+
+      toast.append(title, text);
       document.body.appendChild(toast);
 
       requestAnimationFrame(() => toast.classList.add('show'));
