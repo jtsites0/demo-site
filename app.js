@@ -14,6 +14,29 @@ const sanitizeText = (value, maxLength, multiline = false) => {
   return text.trim().slice(0, maxLength);
 };
 
+const formatWhatsApp = value => {
+  const source=String(value??'').trim();
+  let digits=source.replace(/\D/g,'');
+  let country='';
+
+  if(digits.startsWith('0055')) digits=digits.slice(2);
+  if(digits.startsWith('55')&&(source.startsWith('+')||digits.length>11)){
+    country='+55 ';
+    digits=digits.slice(2);
+  }
+
+  digits=digits.slice(0,11);
+  if(!digits) return country.trimEnd();
+  if(digits.length<=2) return `${country}(${digits}`;
+
+  const ddd=digits.slice(0,2);
+  const number=digits.slice(2);
+  if(!number) return `${country}(${ddd})`;
+  if(number.length<=4) return `${country}(${ddd}) ${number}`;
+  if(number.length<=8) return `${country}(${ddd}) ${number.slice(0,4)}-${number.slice(4)}`;
+  return `${country}(${ddd}) ${number.slice(0,5)}-${number.slice(5,9)}`;
+};
+
 const services = [
   ['01','Site institucional','Uma presença profissional para apresentar sua empresa, serviços, diferenciais e canais de contato.'],
   ['02','Landing page','Uma página focada em conversão para campanhas, serviços específicos e lançamentos.'],
@@ -88,6 +111,11 @@ function QuoteForm(){
     HTMLFormElement.prototype.submit.call(form);
   };
 
+  const formatWhatsappField=e=>{
+    const input=e.currentTarget;
+    input.value=formatWhatsApp(input.value);
+  };
+
   const submit=async(e)=>{
     e.preventDefault();
     const form=e.currentTarget;
@@ -104,7 +132,7 @@ function QuoteForm(){
 
     const nome=sanitizeText(formData.get('nome'),80);
     const email=sanitizeText(formData.get('email'),254).toLowerCase();
-    const whatsapp=sanitizeText(formData.get('whatsapp'),25).replace(/[^\d+().\-\s]/g,'');
+    const whatsapp=formatWhatsApp(sanitizeText(formData.get('whatsapp'),25));
     const negocio=sanitizeText(formData.get('negocio'),100);
     const tipoSite=sanitizeText(formData.get('tipo_site'),40);
     const mensagemProjeto=sanitizeText(formData.get('mensagem'),2000,true);
@@ -177,7 +205,7 @@ function QuoteForm(){
       <label><span>E-mail *</span><input name="email" type="email" placeholder="voce@exemplo.com" required maxLength=${254} autoComplete="email" inputMode="email" /></label>
     </div>
     <div className="form-row">
-      <label><span>WhatsApp</span><input name="whatsapp" type="tel" placeholder="(51) 99999-9999" maxLength=${25} autoComplete="tel" inputMode="tel" /></label>
+      <label><span>WhatsApp</span><input name="whatsapp" type="tel" placeholder="(51) 99999-9999" maxLength=${19} autoComplete="tel" inputMode="tel" onInput=${formatWhatsappField} onBlur=${formatWhatsappField} aria-describedby="whatsapp-help" /><small className="field-hint" id="whatsapp-help">Digite só os números ou cole o contato. Ex.: 51999999999 → (51) 99999-9999. Também aceita +55.</small></label>
       <label><span>Tipo de negócio *</span><input name="negocio" type="text" placeholder="Ex.: barbearia, loja, consultório" required minLength=${2} maxLength=${100} autoComplete="organization" /></label>
     </div>
     <label><span>O que você precisa? *</span><select name="tipo_site" required defaultValue=""><option value="" disabled>Selecione uma opção</option>${SITE_TYPES.map(type=>html`<option value=${type} key=${type}>${type}</option>`)}</select></label>
