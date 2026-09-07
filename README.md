@@ -1,27 +1,27 @@
-# JT Sites — Demo institucional
+# JT Sites — Site institucional
 
-[![Demo online](https://img.shields.io/badge/DEMO-VER%20SITE%20AO%20VIVO-0EA5E9?style=for-the-badge&logo=githubpages&logoColor=white)](https://jtsites0.github.io/demo-site/)
+[![Site online](https://img.shields.io/badge/SITE-VER%20ONLINE-0EA5E9?style=for-the-badge&logo=githubpages&logoColor=white)](https://jtsites0.github.io/demo-site/)
 
-Projeto demonstrativo desenvolvido pela **JT Sites** para mostrar como um pequeno negócio pode ser apresentado com uma identidade digital moderna, profissional e responsiva.
-
-A marca **Ateliê Horizonte** usada no site é fictícia e existe apenas para fins de demonstração. Nenhuma informação apresentada representa um cliente real.
+Site institucional da **JT Sites**, iniciativa de desenvolvimento web focada na criação de sites profissionais, modernos e responsivos para pequenos negócios.
 
 ## 🌐 Site ao vivo
 
 **https://jtsites0.github.io/demo-site/**
 
-## O que esta demo demonstra
+## Objetivo
 
-- Identidade visual própria
-- Hero com chamada para ação
-- Apresentação de serviços
-- Fluxo de atendimento/processo
-- CTA comercial para contato
-- Navegação responsiva para dispositivos móveis
-- HTML semântico
-- CSS organizado com variáveis e breakpoints
-- JavaScript simples e sem dependências
-- Estrutura preparada para adaptação a outros segmentos
+Este repositório funciona como a primeira vitrine oficial da JT Sites. A própria página demonstra a proposta técnica e visual do serviço: estrutura leve, responsividade, navegação clara, identidade profissional e código organizado.
+
+## O que o site apresenta
+
+- Apresentação da JT Sites
+- Serviços oferecidos
+- Processo de trabalho
+- Portfólio inicial
+- Princípios técnicos
+- Chamada para orçamento
+- Contato comercial
+- Layout responsivo para celular, tablet e desktop
 
 ## Tecnologias
 
@@ -45,13 +45,16 @@ demo-site/
 └── README.md
 ```
 
-## Personalização
+## Princípios técnicos
 
-A estrutura pode receber identidade visual, textos, serviços, diferenciais e canais de contato específicos de cada projeto. A intenção é manter uma base leve e fácil de manter sem transformar todos os sites em cópias visuais uns dos outros.
+- Código simples e organizado
+- Responsividade desde o início
+- Estrutura fácil de manter e adaptar
+- Sem dependências desnecessárias
+- Identidade visual ajustável para diferentes projetos
 
-## JT Sites
+## Contato
 
-Sites profissionais, modernos e responsivos para pequenos negócios.
-
-**E-mail:** jtsites.contato@gmail.com  
-**GitHub:** https://github.com/JTSites0
+**JT Sites**  
+E-mail: jtsites.contato@gmail.com  
+GitHub: https://github.com/JTSites0
