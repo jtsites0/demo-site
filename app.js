@@ -17,6 +17,29 @@ const values = [
   ['04','Contato fácil','Chamadas claras para transformar visita em conversa.']
 ];
 
+const portfolio = [
+  {
+    kind:'SITE INSTITUCIONAL',
+    title:'JT Sites',
+    description:'A vitrine oficial da própria JT Sites, criada para apresentar serviços, processo, portfólio e gerar novos contatos.',
+    objective:'Transformar visitas em pedidos de orçamento com uma identidade tecnológica forte e navegação direta.',
+    stack:['React','CSS','GitHub Pages'],
+    live:'https://jtsites0.github.io/demo-site/',
+    code:'https://github.com/JTSites0/demo-site',
+    variant:'blue'
+  },
+  {
+    kind:'PERFIL TÉCNICO',
+    title:'JT Sites no GitHub',
+    description:'Perfil técnico da marca reunindo apresentação, tecnologias, projetos públicos e acesso ao código.',
+    objective:'Dar transparência técnica e permitir que clientes e parceiros vejam como os projetos são construídos.',
+    stack:['GitHub','Markdown','Open Source'],
+    live:'https://github.com/JTSites0',
+    code:'https://github.com/JTSites0',
+    variant:'cyan'
+  }
+];
+
 function MagneticButton({href,children,className='',external=false}){
   const ref=useRef(null);
   const move=e=>{const el=ref.current;if(!el)return;const r=el.getBoundingClientRect();const x=e.clientX-(r.left+r.width/2);const y=e.clientY-(r.top+r.height/2);el.style.transform=`translate(${x*.12}px,${y*.12}px)`};
@@ -29,6 +52,62 @@ function TiltCard({children,className=''}){
   const move=e=>{const el=ref.current;if(!el||window.innerWidth<820)return;const r=el.getBoundingClientRect();const px=(e.clientX-r.left)/r.width;const py=(e.clientY-r.top)/r.height;el.style.setProperty('--mx',`${px*100}%`);el.style.setProperty('--my',`${py*100}%`);el.style.transform=`perspective(900px) rotateX(${(.5-py)*6}deg) rotateY(${(px-.5)*7}deg) translateY(-4px)`};
   const reset=()=>{if(ref.current)ref.current.style.transform=''};
   return html`<article ref=${ref} onMouseMove=${move} onMouseLeave=${reset} className=${`tilt-card ${className}`}>${children}</article>`;
+}
+
+function ProjectMockup({variant='blue', title}){
+  return html`<div className=${`project-mockup ${variant}`}>
+    <div className="mock-browser"><div className="mock-top"><i></i><i></i><i></i><span>${title}</span></div><div className="mock-screen"><div className="mock-kicker"></div><div className="mock-heading"></div><div className="mock-heading small"></div><div className="mock-button"></div><div className="mock-cards"><b></b><b></b><b></b></div></div></div>
+    <div className="mock-phone"><div></div><span></span><span></span><i></i></div>
+  </div>`;
+}
+
+function QuoteForm(){
+  const [status,setStatus]=useState('idle');
+  const [message,setMessage]=useState('');
+
+  const submit=async(e)=>{
+    e.preventDefault();
+    const form=e.currentTarget;
+    if(!form.reportValidity()) return;
+    setStatus('sending');
+    setMessage('Enviando seu pedido...');
+
+    try{
+      const formData=new FormData(form);
+      const payload=Object.fromEntries(formData.entries());
+      const response=await fetch('https://formsubmit.co/ajax/jtsites.contato@gmail.com',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Accept':'application/json'},
+        body:JSON.stringify(payload)
+      });
+      if(!response.ok) throw new Error('Falha no envio');
+      const result=await response.json();
+      if(result.success===false) throw new Error('Falha no envio');
+      setStatus('success');
+      setMessage('Pedido enviado! Vamos responder pelo contato informado.');
+      form.reset();
+    }catch(error){
+      setStatus('error');
+      setMessage('Não foi possível enviar agora. Você também pode escrever para jtsites.contato@gmail.com.');
+    }
+  };
+
+  return html`<form className="quote-form" onSubmit=${submit}>
+    <input type="text" name="_honey" className="honey" tabIndex="-1" autoComplete="off" />
+    <input type="hidden" name="_subject" value="Novo pedido de orçamento - JT Sites" />
+    <input type="hidden" name="_template" value="table" />
+    <div className="form-row">
+      <label><span>Seu nome *</span><input name="nome" type="text" placeholder="Como podemos te chamar?" required /></label>
+      <label><span>E-mail *</span><input name="email" type="email" placeholder="voce@exemplo.com" required /></label>
+    </div>
+    <div className="form-row">
+      <label><span>WhatsApp</span><input name="whatsapp" type="tel" placeholder="(51) 99999-9999" /></label>
+      <label><span>Tipo de negócio *</span><input name="negocio" type="text" placeholder="Ex.: barbearia, loja, consultório" required /></label>
+    </div>
+    <label><span>O que você precisa? *</span><select name="tipo_site" required defaultValue=""><option value="" disabled>Selecione uma opção</option><option>Site institucional</option><option>Landing page</option><option>Redesign de site</option><option>Ainda não sei</option></select></label>
+    <label><span>Conte um pouco sobre o projeto *</span><textarea name="mensagem" rows="6" placeholder="Objetivo do site, serviços que oferece, referências e qualquer detalhe importante..." required></textarea></label>
+    <div className="form-footer"><button className="button primary form-submit" type="submit" disabled=${status==='sending'}>${status==='sending'?'Enviando...':'Enviar pedido de orçamento →'}</button><p className=${`form-status ${status}`}>${message}</p></div>
+  </form>`;
 }
 
 function App(){
@@ -55,7 +134,7 @@ function App(){
       <button className="menu-toggle" aria-label="Abrir menu" onClick=${()=>setMenuOpen(v=>!v)}><i></i><i></i><i></i></button>
       <nav className=${menuOpen?'nav open':'nav'}>
         <a onClick=${close} href="#sobre">Sobre</a><a onClick=${close} href="#servicos">Serviços</a><a onClick=${close} href="#processo">Processo</a><a onClick=${close} href="#portfolio">Portfólio</a>
-        <a onClick=${close} className="nav-cta" href="mailto:jtsites.contato@gmail.com?subject=Or%C3%A7amento%20de%20site%20-%20JT%20Sites">Pedir orçamento</a>
+        <a onClick=${close} className="nav-cta" href="#contato">Pedir orçamento</a>
       </nav>
     </div></header>
 
@@ -68,8 +147,8 @@ function App(){
             <h1>Seu negócio merece um site <span className="rotating-word" key=${word}>${rotating[word]}</span></h1>
             <p>A JT Sites cria sites modernos, responsivos e fáceis de adaptar para apresentar sua empresa com clareza e facilitar o contato com novos clientes.</p>
             <div className="hero-actions">
-              <${MagneticButton} className="primary" href="mailto:jtsites.contato@gmail.com?subject=Quero%20um%20site%20-%20JT%20Sites">Quero um site</${MagneticButton}>
-              <${MagneticButton} className="secondary" href="https://github.com/JTSites0" external=${true}>Ver projetos no GitHub ↗</${MagneticButton}>
+              <${MagneticButton} className="primary" href="#contato">Quero um site</${MagneticButton}>
+              <${MagneticButton} className="secondary" href="#portfolio">Ver portfólio ↓</${MagneticButton}>
             </div>
             <div className="hero-meta"><span><b>RESPONSIVO</b>celular, tablet e desktop</span><span><b>ORGANIZADO</b>código limpo</span><span><b>ADAPTÁVEL</b>identidade própria</span></div>
           </div>
@@ -91,11 +170,11 @@ function App(){
 
       <section className="section" id="processo"><div className="container reveal"><div className="heading"><span className="eyebrow">COMO FUNCIONA</span><h2>Um processo simples, sem enrolação.</h2></div><div className="steps"><div><b>01</b><h3>Entendimento</h3><p>Objetivo, conteúdo e necessidades do negócio.</p></div><div><b>02</b><h3>Construção</h3><p>Design, estrutura, responsividade e desenvolvimento.</p></div><div><b>03</b><h3>Entrega</h3><p>Revisão, ajustes e publicação do projeto.</p></div></div></div></section>
 
-      <section className="showcase" id="portfolio"><div className="container showcase-grid reveal"><div><span className="eyebrow">PORTFÓLIO</span><h2>Este próprio site já é parte do nosso trabalho.</h2><p>Uma vitrine viva do que a JT Sites consegue entregar em estrutura, responsividade, identidade e interação.</p><${MagneticButton} className="dark" href="https://github.com/JTSites0/demo-site" external=${true}>Ver código no GitHub ↗</${MagneticButton}></div><div className="code-window"><div className="code-top"><i></i><i></i><i></i><span>JT_SITES.jsx</span></div><pre><code>${`const site = {\n  moderno: true,\n  responsivo: true,\n  identidade: "própria",\n  objetivo: "gerar contato"\n};`}</code></pre></div></div></section>
+      <section className="portfolio-section" id="portfolio"><div className="container reveal"><div className="portfolio-heading"><div><span className="eyebrow">PORTFÓLIO</span><h2>Projetos que mostram como a gente pensa.</h2></div><p>Nada de thumbnail solta. Cada projeto mostra objetivo, tecnologia e acesso ao resultado ou ao código.</p></div><div className="projects-grid">${portfolio.map(project=>html`<article className="project-card" key=${project.title}><${ProjectMockup} variant=${project.variant} title=${project.title}/><div className="project-content"><span className="project-kind">${project.kind}</span><h3>${project.title}</h3><p>${project.description}</p><div className="project-objective"><b>Objetivo</b><span>${project.objective}</span></div><div className="tech-list">${project.stack.map(tech=>html`<span key=${tech}>${tech}</span>`)}</div><div className="project-actions"><a className="project-link primary-link" href=${project.live} target="_blank" rel="noreferrer">Ver projeto ↗</a><a className="project-link" href=${project.code} target="_blank" rel="noreferrer">Código ↗</a></div></div></article>`)}</div></div></section>
 
       <section className="section"><div className="container reveal"><div className="heading"><span className="eyebrow">PRINCÍPIOS</span><h2>Menos template. Mais identidade.</h2></div><div className="value-grid">${values.map(([n,t,d])=>html`<${TiltCard} key=${n}><span className="card-num">${n}</span><h3>${t}</h3><p>${d}</p></${TiltCard}>`)}</div></div></section>
 
-      <section className="contact" id="contato"><div className="container contact-box reveal"><div><span className="eyebrow">VAMOS CONVERSAR?</span><h2>Quer um site para o seu negócio?</h2><p>Conta pra gente o que você precisa.</p></div><${MagneticButton} className="dark" href="mailto:jtsites.contato@gmail.com?subject=Or%C3%A7amento%20de%20site%20-%20JT%20Sites">Pedir orçamento</${MagneticButton}></div></section>
+      <section className="contact" id="contato"><div className="container contact-layout reveal"><div className="contact-intro"><span className="eyebrow">PEDIR ORÇAMENTO</span><h2>Conta pra gente o que você precisa.</h2><p>Preencha o formulário com as informações básicas do projeto. A JT Sites recebe o pedido por e-mail e responde pelo contato informado.</p><div className="contact-note"><b>Prefere e-mail?</b><a href="mailto:jtsites.contato@gmail.com">jtsites.contato@gmail.com</a></div></div><${QuoteForm}/></div></section>
     </main>
 
     <footer><div className="container footer-wrap"><span>© ${new Date().getFullYear()} JT Sites.</span><span>Desenvolvimento web para pequenos negócios.</span></div></footer>
