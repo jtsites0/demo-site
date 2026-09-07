@@ -1,8 +1,17 @@
-import React, { useEffect, useRef, useState } from 'https://esm.sh/react@19.1.1';
-import { createRoot } from 'https://esm.sh/react-dom@19.1.1/client';
-import htm from 'https://esm.sh/htm@3.1.1';
+import React, { useEffect, useRef, useState } from 'https://esm.sh/react@19.2.8?target=es2022';
+import { createRoot } from 'https://esm.sh/react-dom@19.2.8/client?target=es2022';
+import htm from 'https://esm.sh/htm@3.1.1?target=es2022';
 
 const html = htm.bind(React.createElement);
+const FORM_ENDPOINT = 'https://formsubmit.co/ajax/jtsites.contato@gmail.com';
+const SITE_TYPES = ['Site institucional','Landing page','Redesign de site','Ainda não sei'];
+const CONTROL_CHARS = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g;
+
+const sanitizeText = (value, maxLength, multiline = false) => {
+  let text = String(value ?? '').normalize('NFKC').replace(CONTROL_CHARS, '').replace(/[<>]/g, '');
+  if (!multiline) text = text.replace(/[\r\n]+/g, ' ');
+  return text.trim().slice(0, maxLength);
+};
 
 const services = [
   ['01','Site institucional','Uma presença profissional para apresentar sua empresa, serviços, diferenciais e canais de contato.'],
@@ -44,7 +53,7 @@ function MagneticButton({href,children,className='',external=false}){
   const ref=useRef(null);
   const move=e=>{const el=ref.current;if(!el)return;const r=el.getBoundingClientRect();const x=e.clientX-(r.left+r.width/2);const y=e.clientY-(r.top+r.height/2);el.style.transform=`translate(${x*.12}px,${y*.12}px)`};
   const reset=()=>{if(ref.current)ref.current.style.transform=''};
-  return html`<a ref=${ref} onMouseMove=${move} onMouseLeave=${reset} className=${`button magnetic ${className}`} href=${href} target=${external?'_blank':undefined} rel=${external?'noreferrer':undefined}>${children}</a>`;
+  return html`<a ref=${ref} onMouseMove=${move} onMouseLeave=${reset} className=${`button magnetic ${className}`} href=${href} target=${external?'_blank':undefined} rel=${external?'noopener noreferrer':undefined}>${children}</a>`;
 }
 
 function TiltCard({children,className=''}){
@@ -64,49 +73,98 @@ function ProjectMockup({variant='blue', title}){
 function QuoteForm(){
   const [status,setStatus]=useState('idle');
   const [message,setMessage]=useState('');
+  const lastSuccessRef=useRef(0);
 
   const submit=async(e)=>{
     e.preventDefault();
     const form=e.currentTarget;
-    if(!form.reportValidity()) return;
+    if(status==='sending'||!form.reportValidity()) return;
+
+    const formData=new FormData(form);
+    const honey=sanitizeText(formData.get('_honey'),120);
+    if(honey){
+      setStatus('success');
+      setMessage('Pedido enviado! Vamos responder pelo contato informado.');
+      form.reset();
+      return;
+    }
+
+    const nome=sanitizeText(formData.get('nome'),80);
+    const email=sanitizeText(formData.get('email'),254).toLowerCase();
+    const whatsapp=sanitizeText(formData.get('whatsapp'),25).replace(/[^\d+().\-\s]/g,'');
+    const negocio=sanitizeText(formData.get('negocio'),100);
+    const tipoSite=sanitizeText(formData.get('tipo_site'),40);
+    const mensagemProjeto=sanitizeText(formData.get('mensagem'),2000,true);
+
+    if(!nome||!email||!negocio||mensagemProjeto.length<20||!SITE_TYPES.includes(tipoSite)){
+      setStatus('error');
+      setMessage('Revise os campos do formulário e tente novamente.');
+      return;
+    }
+
+    if(Date.now()-lastSuccessRef.current<15000){
+      setStatus('error');
+      setMessage('O pedido anterior já foi enviado. Aguarde alguns segundos antes de enviar outro.');
+      return;
+    }
+
+    const payload={
+      nome,
+      email,
+      whatsapp,
+      negocio,
+      tipo_site:tipoSite,
+      mensagem:mensagemProjeto,
+      _subject:'Novo pedido de orçamento - JT Sites',
+      _template:'table',
+      _honey:'',
+      _url:'https://jtsites0.github.io/demo-site/'
+    };
+
     setStatus('sending');
     setMessage('Enviando seu pedido...');
+    const controller=new AbortController();
+    const timeout=setTimeout(()=>controller.abort(),12000);
 
     try{
-      const formData=new FormData(form);
-      const payload=Object.fromEntries(formData.entries());
-      const response=await fetch('https://formsubmit.co/ajax/jtsites.contato@gmail.com',{
+      const response=await fetch(FORM_ENDPOINT,{
         method:'POST',
         headers:{'Content-Type':'application/json','Accept':'application/json'},
-        body:JSON.stringify(payload)
+        body:JSON.stringify(payload),
+        credentials:'omit',
+        cache:'no-store',
+        referrerPolicy:'strict-origin-when-cross-origin',
+        signal:controller.signal
       });
-      if(!response.ok) throw new Error('Falha no envio');
+      const contentType=response.headers.get('content-type')||'';
+      if(!response.ok||!contentType.includes('application/json')) throw new Error('Falha no envio');
       const result=await response.json();
       if(result.success===false) throw new Error('Falha no envio');
+      lastSuccessRef.current=Date.now();
       setStatus('success');
       setMessage('Pedido enviado! Vamos responder pelo contato informado.');
       form.reset();
     }catch(error){
       setStatus('error');
       setMessage('Não foi possível enviar agora. Você também pode escrever para jtsites.contato@gmail.com.');
+    }finally{
+      clearTimeout(timeout);
     }
   };
 
-  return html`<form className="quote-form" onSubmit=${submit}>
-    <input type="text" name="_honey" className="honey" tabIndex="-1" autoComplete="off" />
-    <input type="hidden" name="_subject" value="Novo pedido de orçamento - JT Sites" />
-    <input type="hidden" name="_template" value="table" />
+  return html`<form className="quote-form" onSubmit=${submit} acceptCharset="UTF-8">
+    <input type="text" name="_honey" className="honey" tabIndex="-1" autoComplete="off" aria-hidden="true" maxLength=${120} />
     <div className="form-row">
-      <label><span>Seu nome *</span><input name="nome" type="text" placeholder="Como podemos te chamar?" required /></label>
-      <label><span>E-mail *</span><input name="email" type="email" placeholder="voce@exemplo.com" required /></label>
+      <label><span>Seu nome *</span><input name="nome" type="text" placeholder="Como podemos te chamar?" required minLength=${2} maxLength=${80} autoComplete="name" /></label>
+      <label><span>E-mail *</span><input name="email" type="email" placeholder="voce@exemplo.com" required maxLength=${254} autoComplete="email" inputMode="email" /></label>
     </div>
     <div className="form-row">
-      <label><span>WhatsApp</span><input name="whatsapp" type="tel" placeholder="(51) 99999-9999" /></label>
-      <label><span>Tipo de negócio *</span><input name="negocio" type="text" placeholder="Ex.: barbearia, loja, consultório" required /></label>
+      <label><span>WhatsApp</span><input name="whatsapp" type="tel" placeholder="(51) 99999-9999" maxLength=${25} autoComplete="tel" inputMode="tel" pattern="[0-9+() .-]{8,25}" /></label>
+      <label><span>Tipo de negócio *</span><input name="negocio" type="text" placeholder="Ex.: barbearia, loja, consultório" required minLength=${2} maxLength=${100} autoComplete="organization" /></label>
     </div>
-    <label><span>O que você precisa? *</span><select name="tipo_site" required defaultValue=""><option value="" disabled>Selecione uma opção</option><option>Site institucional</option><option>Landing page</option><option>Redesign de site</option><option>Ainda não sei</option></select></label>
-    <label><span>Conte um pouco sobre o projeto *</span><textarea name="mensagem" rows="6" placeholder="Objetivo do site, serviços que oferece, referências e qualquer detalhe importante..." required></textarea></label>
-    <div className="form-footer"><button className="button primary form-submit" type="submit" disabled=${status==='sending'}>${status==='sending'?'Enviando...':'Enviar pedido de orçamento →'}</button><p className=${`form-status ${status}`}>${message}</p></div>
+    <label><span>O que você precisa? *</span><select name="tipo_site" required defaultValue=""><option value="" disabled>Selecione uma opção</option>${SITE_TYPES.map(type=>html`<option value=${type} key=${type}>${type}</option>`)}</select></label>
+    <label><span>Conte um pouco sobre o projeto *</span><textarea name="mensagem" rows="6" placeholder="Objetivo do site, serviços que oferece, referências e qualquer detalhe importante..." required minLength=${20} maxLength=${2000}></textarea></label>
+    <div className="form-footer"><button className="button primary form-submit" type="submit" disabled=${status==='sending'}>${status==='sending'?'Enviando...':'Enviar pedido de orçamento →'}</button><p className=${`form-status ${status}`} aria-live="polite">${message}</p></div>
   </form>`;
 }
 
@@ -131,8 +189,8 @@ function App(){
     <div className="top-strip">JT Sites • sites profissionais para pequenos negócios</div>
     <header className="header"><div className="container nav-wrap">
       <a className="brand" href="#inicio">JT <span>Sites</span></a>
-      <button className="menu-toggle" aria-label="Abrir menu" onClick=${()=>setMenuOpen(v=>!v)}><i></i><i></i><i></i></button>
-      <nav className=${menuOpen?'nav open':'nav'}>
+      <button className="menu-toggle" aria-label=${menuOpen?'Fechar menu':'Abrir menu'} aria-expanded=${menuOpen} aria-controls="main-nav" onClick=${()=>setMenuOpen(v=>!v)}><i></i><i></i><i></i></button>
+      <nav id="main-nav" className=${menuOpen?'nav open':'nav'}>
         <a onClick=${close} href="#sobre">Sobre</a><a onClick=${close} href="#servicos">Serviços</a><a onClick=${close} href="#processo">Processo</a><a onClick=${close} href="#portfolio">Portfólio</a>
         <a onClick=${close} className="nav-cta" href="#contato">Pedir orçamento</a>
       </nav>
@@ -170,7 +228,7 @@ function App(){
 
       <section className="section" id="processo"><div className="container reveal"><div className="heading"><span className="eyebrow">COMO FUNCIONA</span><h2>Um processo simples, sem enrolação.</h2></div><div className="steps"><div><b>01</b><h3>Entendimento</h3><p>Objetivo, conteúdo e necessidades do negócio.</p></div><div><b>02</b><h3>Construção</h3><p>Design, estrutura, responsividade e desenvolvimento.</p></div><div><b>03</b><h3>Entrega</h3><p>Revisão, ajustes e publicação do projeto.</p></div></div></div></section>
 
-      <section className="portfolio-section" id="portfolio"><div className="container reveal"><div className="portfolio-heading"><div><span className="eyebrow">PORTFÓLIO</span><h2>Projetos que mostram como a gente pensa.</h2></div><p>Nada de thumbnail solta. Cada projeto mostra objetivo, tecnologia e acesso ao resultado ou ao código.</p></div><div className="projects-grid">${portfolio.map(project=>html`<article className="project-card" key=${project.title}><${ProjectMockup} variant=${project.variant} title=${project.title}/><div className="project-content"><span className="project-kind">${project.kind}</span><h3>${project.title}</h3><p>${project.description}</p><div className="project-objective"><b>Objetivo</b><span>${project.objective}</span></div><div className="tech-list">${project.stack.map(tech=>html`<span key=${tech}>${tech}</span>`)}</div><div className="project-actions"><a className="project-link primary-link" href=${project.live} target="_blank" rel="noreferrer">Ver projeto ↗</a><a className="project-link" href=${project.code} target="_blank" rel="noreferrer">Código ↗</a></div></div></article>`)}</div></div></section>
+      <section className="portfolio-section" id="portfolio"><div className="container reveal"><div className="portfolio-heading"><div><span className="eyebrow">PORTFÓLIO</span><h2>Projetos que mostram como a gente pensa.</h2></div><p>Nada de thumbnail solta. Cada projeto mostra objetivo, tecnologia e acesso ao resultado ou ao código.</p></div><div className="projects-grid">${portfolio.map(project=>html`<article className="project-card" key=${project.title}><${ProjectMockup} variant=${project.variant} title=${project.title}/><div className="project-content"><span className="project-kind">${project.kind}</span><h3>${project.title}</h3><p>${project.description}</p><div className="project-objective"><b>Objetivo</b><span>${project.objective}</span></div><div className="tech-list">${project.stack.map(tech=>html`<span key=${tech}>${tech}</span>`)}</div><div className="project-actions"><a className="project-link primary-link" href=${project.live} target="_blank" rel="noopener noreferrer">Ver projeto ↗</a><a className="project-link" href=${project.code} target="_blank" rel="noopener noreferrer">Código ↗</a></div></div></article>`)}</div></div></section>
 
       <section className="section"><div className="container reveal"><div className="heading"><span className="eyebrow">PRINCÍPIOS</span><h2>Menos template. Mais identidade.</h2></div><div className="value-grid">${values.map(([n,t,d])=>html`<${TiltCard} key=${n}><span className="card-num">${n}</span><h3>${t}</h3><p>${d}</p></${TiltCard}>`)}</div></div></section>
 
