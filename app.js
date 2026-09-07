@@ -99,6 +99,16 @@ function QuoteForm(){
   const [message,setMessage]=useState('');
   const lastSuccessRef=useRef(0);
 
+  useEffect(()=>{
+    const params=new URLSearchParams(window.location.search);
+    if(params.get('form')==='sent'){
+      lastSuccessRef.current=Date.now();
+      setStatus('success');
+      setMessage('✓ Pedido confirmado e enviado com sucesso! Vamos responder pelo contato informado.');
+      window.history.replaceState({},document.title,`${window.location.pathname}#contato`);
+    }
+  },[]);
+
   const nativeFallback=(form,payload)=>{
     const assign=(name,value)=>{const field=form.elements.namedItem(name);if(field) field.value=value;};
     assign('nome',payload.nome);
@@ -125,7 +135,7 @@ function QuoteForm(){
     const honey=sanitizeText(formData.get('_honey'),120);
     if(honey){
       setStatus('success');
-      setMessage('Pedido enviado! Vamos responder pelo contato informado.');
+      setMessage('✓ Pedido confirmado e enviado com sucesso! Vamos responder pelo contato informado.');
       form.reset();
       return;
     }
@@ -183,7 +193,7 @@ function QuoteForm(){
       if(result.success===false) throw new Error('Falha no envio');
       lastSuccessRef.current=Date.now();
       setStatus('success');
-      setMessage('Pedido enviado! Vamos responder pelo contato informado.');
+      setMessage('✓ Pedido confirmado e enviado com sucesso! Vamos responder pelo contato informado.');
       form.reset();
     }catch(error){
       clearTimeout(timeout);
