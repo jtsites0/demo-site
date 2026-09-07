@@ -4,6 +4,7 @@ import htm from 'https://esm.sh/htm@3.1.1?target=es2022';
 
 const html = htm.bind(React.createElement);
 const FORM_ENDPOINT = 'https://formsubmit.co/ajax/jtsites.contato@gmail.com';
+const FORM_NATIVE_ENDPOINT = 'https://formsubmit.co/jtsites.contato@gmail.com';
 const SITE_TYPES = ['Site institucional','Landing page','Redesign de site','Ainda não sei'];
 const CONTROL_CHARS = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g;
 
@@ -75,6 +76,18 @@ function QuoteForm(){
   const [message,setMessage]=useState('');
   const lastSuccessRef=useRef(0);
 
+  const nativeFallback=(form,payload)=>{
+    const assign=(name,value)=>{const field=form.elements.namedItem(name);if(field) field.value=value;};
+    assign('nome',payload.nome);
+    assign('email',payload.email);
+    assign('whatsapp',payload.whatsapp);
+    assign('negocio',payload.negocio);
+    assign('tipo_site',payload.tipo_site);
+    assign('mensagem',payload.mensagem);
+    setMessage('Abrindo o envio seguro do formulário...');
+    HTMLFormElement.prototype.submit.call(form);
+  };
+
   const submit=async(e)=>{
     e.preventDefault();
     const form=e.currentTarget;
@@ -96,13 +109,13 @@ function QuoteForm(){
     const tipoSite=sanitizeText(formData.get('tipo_site'),40);
     const mensagemProjeto=sanitizeText(formData.get('mensagem'),2000,true);
 
-    if(!nome||!email||!negocio||mensagemProjeto.length<20||!SITE_TYPES.includes(tipoSite)){
+    if(!nome||!email||!negocio||mensagemProjeto.length<5||!SITE_TYPES.includes(tipoSite)){
       setStatus('error');
-      setMessage('Revise os campos do formulário e tente novamente.');
+      setMessage('Revise os campos obrigatórios e tente novamente.');
       return;
     }
 
-    if(Date.now()-lastSuccessRef.current<15000){
+    if(Date.now()-lastSuccessRef.current<10000){
       setStatus('error');
       setMessage('O pedido anterior já foi enviado. Aguarde alguns segundos antes de enviar outro.');
       return;
@@ -124,7 +137,7 @@ function QuoteForm(){
     setStatus('sending');
     setMessage('Enviando seu pedido...');
     const controller=new AbortController();
-    const timeout=setTimeout(()=>controller.abort(),12000);
+    const timeout=setTimeout(()=>controller.abort(),10000);
 
     try{
       const response=await fetch(FORM_ENDPOINT,{
@@ -145,25 +158,30 @@ function QuoteForm(){
       setMessage('Pedido enviado! Vamos responder pelo contato informado.');
       form.reset();
     }catch(error){
-      setStatus('error');
-      setMessage('Não foi possível enviar agora. Você também pode escrever para jtsites.contato@gmail.com.');
+      clearTimeout(timeout);
+      nativeFallback(form,payload);
+      return;
     }finally{
       clearTimeout(timeout);
+      if(status!=='success') setStatus(current=>current==='sending'?'idle':current);
     }
   };
 
-  return html`<form className="quote-form" onSubmit=${submit} acceptCharset="UTF-8">
+  return html`<form className="quote-form" onSubmit=${submit} action=${FORM_NATIVE_ENDPOINT} method="POST" acceptCharset="UTF-8">
     <input type="text" name="_honey" className="honey" tabIndex="-1" autoComplete="off" aria-hidden="true" maxLength=${120} />
+    <input type="hidden" name="_subject" value="Novo pedido de orçamento - JT Sites" />
+    <input type="hidden" name="_template" value="table" />
+    <input type="hidden" name="_next" value="https://jtsites0.github.io/demo-site/?form=sent#contato" />
     <div className="form-row">
       <label><span>Seu nome *</span><input name="nome" type="text" placeholder="Como podemos te chamar?" required minLength=${2} maxLength=${80} autoComplete="name" /></label>
       <label><span>E-mail *</span><input name="email" type="email" placeholder="voce@exemplo.com" required maxLength=${254} autoComplete="email" inputMode="email" /></label>
     </div>
     <div className="form-row">
-      <label><span>WhatsApp</span><input name="whatsapp" type="tel" placeholder="(51) 99999-9999" maxLength=${25} autoComplete="tel" inputMode="tel" pattern="[0-9+() .-]{8,25}" /></label>
+      <label><span>WhatsApp</span><input name="whatsapp" type="tel" placeholder="(51) 99999-9999" maxLength=${25} autoComplete="tel" inputMode="tel" /></label>
       <label><span>Tipo de negócio *</span><input name="negocio" type="text" placeholder="Ex.: barbearia, loja, consultório" required minLength=${2} maxLength=${100} autoComplete="organization" /></label>
     </div>
     <label><span>O que você precisa? *</span><select name="tipo_site" required defaultValue=""><option value="" disabled>Selecione uma opção</option>${SITE_TYPES.map(type=>html`<option value=${type} key=${type}>${type}</option>`)}</select></label>
-    <label><span>Conte um pouco sobre o projeto *</span><textarea name="mensagem" rows="6" placeholder="Objetivo do site, serviços que oferece, referências e qualquer detalhe importante..." required minLength=${20} maxLength=${2000}></textarea></label>
+    <label><span>Conte um pouco sobre o projeto *</span><textarea name="mensagem" rows="6" placeholder="Objetivo do site, serviços que oferece, referências e qualquer detalhe importante..." required minLength=${5} maxLength=${2000}></textarea></label>
     <div className="form-footer"><button className="button primary form-submit" type="submit" disabled=${status==='sending'}>${status==='sending'?'Enviando...':'Enviar pedido de orçamento →'}</button><p className=${`form-status ${status}`} aria-live="polite">${message}</p></div>
   </form>`;
 }
